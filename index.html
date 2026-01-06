@@ -604,7 +604,7 @@ toggleBtn.addEventListener("click", () => {
 
 let cmuDict = {};
 
-fetch("cmudict.json")
+fetch("./cmudict.json")
   .then(res => res.json())
   .then(data => {
     cmuDict = data;
@@ -786,5 +786,6 @@ document.addEventListener("mouseup", () => {
 </script>
 </body>
 </html>
+
 
 
