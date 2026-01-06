@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tranquil Lyrics</title>
+  <style>
+   :root {
+  --bg-image: url("BG-2.JPG");
+      --overlay: rgba(0, 0, 0, 0.45);
+      --editor-bg: rgba(20, 20, 25, 0.65);
+      --text-color: #f2f6ff;
+      --font: "Georgia", serif;
+      --font-size: 17px;
+    }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: var(--font);
+    }
+
+    body {
+      background-image: var(--bg-image);
+      background-size: cover;
+      background-position: center;
+    }
+
+    .overlay {
+      background: var(--overlay);
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: stretch;
+    }
+
+    .editor-wrapper {
+      width: 90%;
+      max-width: 1000px;
+      margin: 20px;
+      background: var(--editor-bg);
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 10px;
+      background: rgba(0,0,0,0.4);
+    }
+
+    .toolbar button, .toolbar input {
+      background: rgba(255,255,255,0.15);
+      color: white;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .toolbar button:hover {
+      background: rgba(255,255,255,0.3);
+    }
+
+    .editor-area {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .gutter {
+      background: transparent;
+      color: var(--text-color);
+      padding: 10px;
+      text-align: right;
+      min-width: 60px;
+      line-height: 1.4;
+      white-space: pre;
+      user-select: none;
+      overflow: hidden;
+      font-size: var(--font-size);
+      font-family: var(--font);
+    }
+
+    #editor {
+      flex: 1;
+      padding: 10px;
+      background: transparent;
+      color: var(--text-color);
+      font-size: var(--font-size);
+      line-height: 1.4;
+      outline: none;
+      overflow: auto;
+      white-space: pre-wrap;
+    }
+
+    .reference-panel {
+      height: 260px;
+      background: rgba(0, 0, 0, 0.35);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .reference-panel:fullscreen {
+      height: 100%;
+      border-radius: 0;
+    }
+
+    .reference-tabs {
+      display: flex;
+      gap: 8px;
+      padding: 8px;
+    }
+
+    .tab {
+      background: rgba(255,255,255,0.15);
+      border: none;
+      color: white;
+      padding: 6px 10px;
+      border-radius: 999px;
+      cursor: pointer;
+    }
+
+    .tab.active {
+      background: rgba(255,255,255,0.35);
+    }
+
+    .reference-hint {
+      display: none;
+      padding: 6px 10px;
+      font-size: 12px;
+      color: #ddd;
+    }
+
+    .reference-frame {
+      flex: 1;
+      border: none;
+    }
+.layout-container {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+
+.metronome-panel {
+  width: 60px;
+  background: rgba(0, 0, 0, 0.4);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 5px;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.metronome-panel input {
+  width: 40px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 4px;
+}
+
+.metronome-panel button {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 6px;
+  cursor: pointer;
+}
+
+.metronome-panel button:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+.metronome-light {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: #222;
+  border: 2px solid #555;
+  box-shadow: 0 0 4px #000;
+  transition: background-color 0.1s ease, box-shadow 0.1s ease;
+}
+.metronome-light.on {
+  background-color: #3fa;
+  box-shadow: 0 0 8px #3fa;
+}
+.metronome-light.first {
+  background-color: #f44;
+  box-shadow: 0 0 10px #f44;
+}
+
+
+  </style>
+</head>
+
+<body>
+<div class="overlay">
+  <div class="layout-container">
+ <!-- LEFT COLUMN: Metronome Panel -->
+   
+<div class="metronome-panel">
+  <div id="metronomeLight" class="metronome-light"></div>
+
+  <label for="timeSignature" style="font-size: 12px;">TS</label>
+  <select id="timeSignature" style="width: 50px;">
+    <option value="4">4/4</option>
+    <option value="3">3/4</option>
+    <option value="5">5/4</option>
+    <option value="6">6/8</option>
+    <option value="7">7/8</option>
+  </select>
+
+  <button id="metronomeToggle">Start</button>
+  <input id="bpmInput" type="number" min="30" max="300" value="100" />
+
+  <label style="font-size: 12px;">Rhythm</label>
+  <div id="rhythmLight" style="
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background-color: #444;
+    border: 2px solid #555;
+    box-shadow: 0 0 4px #000;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;">
+  </div>
+<div style="display:flex; gap:10px; flex-wrap:wrap; font-size:12px;">
+  <label>
+    Padding
+    <input type="range" id="padSlider" min="0.3" max="0.8" step="0.01" value="0.45">
+  </label>
+
+  <label>
+    Density
+    <input type="range" id="densitySlider" min="0.2" max="0.6" step="0.01" value="0.38">
+  </label>
+
+  <label>
+    Variance
+    <input type="range" id="varianceSlider" min="1" max="5" step="0.1" value="2.8">
+  </label>
+
+  <label>
+    Gap
+    <input type="range" id="gapSlider" min="1" max="6" step="0.1" value="4.5">
+  </label>
+</div>
+
+</div>
+
+
+  <!-- RIGHT: Existing Editor -->
+    <div class="editor-wrapper">
+      <!-- your editor, toolbar, etc. stays the same -->
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <button id="newBtn">Start New</button>
+      <button id="openBtn">Open</button>
+      <button id="saveBtn">Save</button>
+      <button id="saveAsBtn">Save As</button>
+      <button id="refFullscreenBtn">Reference Fullscreen</button>
+      <button id="fontDown">A−</button>
+      <button id="fontUp">A+</button>
+      <label>Text <input type="color" id="textColor"></label>
+      <label>Highlight <input type="color" id="highlightColor" value="#ffff00"></label>
+      <button id="highlightBtn">Highlight</button>
+      <button id="emailBtn">Send Email</button>
+      <label>
+        📐 Ref Height
+        <input type="range" id="refSizeSlider" min="100" max="600" value="260" style="width: 100px;">
+      </label>
+    </div>
+
+    <!-- Editor Area -->
+    <div class="editor-area">
+      <div id="gutter" class="gutter"></div>
+      <div id="editor" contenteditable="true"></div>
+    </div>
+
+    <!-- Reference Panel -->
+    <div class="reference-panel">
+      <div class="reference-tabs">
+        <button class="tab active" data-site="rhyme">RhymeZone</button>
+        <button class="tab" data-site="wiki">Wikipedia</button>
+        <button class="tab" data-site="askai">Ask AI</button>
+      </div>
+      <div id="referenceHint" class="reference-hint"></div>
+      <iframe id="referenceFrame" class="reference-frame" src="https://www.rhymezone.com/"></iframe>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const editor = document.getElementById("editor");
+const gutter = document.getElementById("gutter");
+const frame = document.getElementById("referenceFrame");
+const hint = document.getElementById("referenceHint");
+const root = document.documentElement.style;
+
+let PAD_THRESHOLD = 0.45;
+let DENSITY_THRESHOLD = 0.38;
+let VARIANCE_THRESHOLD = 2.8;
+let MAX_GAP = 4.5;
+const padSlider = document.getElementById("padSlider");
+const densitySlider = document.getElementById("densitySlider");
+const varianceSlider = document.getElementById("varianceSlider");
+const gapSlider = document.getElementById("gapSlider");
+
+padSlider.oninput = e => PAD_THRESHOLD = +e.target.value;
+densitySlider.oninput = e => DENSITY_THRESHOLD = +e.target.value;
+varianceSlider.oninput = e => VARIANCE_THRESHOLD = +e.target.value;
+gapSlider.oninput = e => MAX_GAP = +e.target.value;
+
+
+/* === Load Saved Settings === */
+const save = (k, v) => localStorage.setItem(k, v);
+const load = k => localStorage.getItem(k);
+
+function loadSettings() {
+  const fontSize = load("fontSize");
+  const textColor = load("textColor");
+
+  if (fontSize) root.setProperty("--font-size", fontSize);
+  if (textColor) {
+    root.setProperty("--text-color", textColor);
+    document.getElementById("textColor").value = textColor;
+  }
+}
+loadSettings();
+
+/* === Syllable Count === */
+function countSyllables(word) {
+  word = word.toLowerCase().replace(/[^a-z]/g, "");
+  if (word.length <= 3) return word ? 1 : 0;
+  word = word.replace(/e$/, "");
+  const g = word.match(/[aeiouy]+/g);
+  return g ? g.length : 1;
+}
+
+function updateGutter() {
+  gutter.textContent = editor.innerText
+    .split("\n")
+    .map(line =>
+      line.split(/\s+/).filter(Boolean)
+      .reduce((sum, w) => sum + countSyllables(w), 0)
+    ).join("\n");
+}
+
+editor.addEventListener("input", updateGutter);
+editor.addEventListener("scroll", () => gutter.scrollTop = editor.scrollTop);
+updateGutter();
+
+/* === Fix Enter Key (Single Line Break) === */
+editor.addEventListener("keydown", function(e) {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    const br = document.createElement("br");
+    const selection = window.getSelection();
+    const range = selection.getRangeAt(0);
+    range.deleteContents();
+    range.insertNode(br);
+    const newRange = document.createRange();
+    newRange.setStartAfter(br);
+    newRange.collapse(true);
+    selection.removeAllRanges();
+    selection.addRange(newRange);
+    updateGutter();
+  }
+});
+
+/* === Font Controls === */
+function getFontSize() {
+  return parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--font-size"));
+}
+
+document.getElementById("fontUp").onclick = () => {
+  const size = Math.min(getFontSize() + 1, 72);
+  root.setProperty("--font-size", size + "px");
+  save("fontSize", size + "px");
+  updateGutter();
+};
+
+document.getElementById("fontDown").onclick = () => {
+  const size = Math.max(getFontSize() - 1, 8);
+  root.setProperty("--font-size", size + "px");
+  save("fontSize", size + "px");
+  updateGutter();
+};
+
+/* === Color Picker === */
+document.getElementById("textColor").addEventListener("input", e => {
+  root.setProperty("--text-color", e.target.value);
+  save("textColor", e.target.value);
+});
+
+/* === Highlight Selected Text === */
+document.getElementById("highlightBtn").onclick = () => {
+  const color = document.getElementById("highlightColor").value;
+  const sel = window.getSelection();
+  if (!sel.rangeCount || sel.isCollapsed) return;
+  const range = sel.getRangeAt(0);
+  const span = document.createElement("span");
+  span.style.backgroundColor = color;
+  span.textContent = range.toString();
+  range.deleteContents();
+  range.insertNode(span);
+  sel.removeAllRanges();
+};
+
+/* === Save / Load === */
+document.getElementById("saveBtn").onclick = () => {
+  const blob = new Blob([editor.innerText], { type: "text/plain" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "lyrics.txt";
+  a.click();
+};
+
+document.getElementById("saveAsBtn").onclick = () => {
+  const filename = prompt("Enter a file name:", "lyrics.txt");
+  if (!filename) return;
+  const blob = new Blob([editor.innerText], { type: "text/plain" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename.endsWith(".txt") ? filename : filename + ".txt";
+  a.click();
+};
+
+document.getElementById("openBtn").onclick = () => {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = ".txt";
+  input.onchange = e => {
+    e.target.files[0].text().then(text => {
+      editor.innerText = text;
+      updateGutter();
+    });
+  };
+  input.click();
+};
+
+/* === Email === */
+document.getElementById("emailBtn").onclick = () => {
+  const body = encodeURIComponent(editor.innerText);
+  window.location.href = `mailto:?subject=Lyrics&body=${body}`;
+};
+
+/* === Start New === */
+document.getElementById("newBtn").onclick = () => {
+  if (confirm("Start a new lyric? This will clear everything.")) {
+    editor.innerHTML = "";
+    updateGutter();
+  }
+};
+
+/* === Tab Switching === */
+function setTab(key) {
+  document.querySelectorAll(".tab").forEach(t =>
+    t.classList.toggle("active", t.dataset.site === key)
+  );
+
+  if (key === "wiki") {
+    frame.src = "https://en.wikipedia.org/wiki/Main_Page";
+    hint.style.display = "none";
+  } else if (key === "rhyme") {
+    frame.src = "https://www.rhymezone.com/";
+    hint.style.display = "none";
+  } else if (key === "askai") {
+    frame.src = "https://yuntian-deng-chatgpt.hf.space/";
+    hint.style.display = "block";
+    hint.innerHTML = `🧠 Chat with AI below. If it doesn’t load, <a href="https://yuntian-deng-chatgpt.hf.space/" target="_blank">open it in a new tab</a>.`;
+  }
+}
+
+document.querySelectorAll(".tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    const siteKey = tab.dataset.site;
+    setTab(siteKey);
+  });
+});
+
+/* === Double Click to Search RhymeZone === */
+editor.addEventListener("dblclick", () => {
+  const word = window.getSelection().toString().trim();
+  if (!word || !/^[a-zA-Z]+$/.test(word)) return;
+  const url = `https://www.rhymezone.com/r/rhyme.cgi?Word=${encodeURIComponent(word)}&typeofrhyme=perfect`;
+  setTab("rhyme");
+  frame.src = url;
+  hint.style.display = "block";
+  hint.innerHTML = `🔍 Searching <strong>${word}</strong> in RhymeZone.<br>If results don’t load below, <a href="${url}" target="_blank">click here</a>.`;
+});
+
+/* === Reference Fullscreen Toggle === */
+const refPanel = document.querySelector(".reference-panel");
+const fsBtn = document.getElementById("refFullscreenBtn");
+
+fsBtn.onclick = async () => {
+  if (!document.fullscreenElement) {
+    await refPanel.requestFullscreen();
+  } else {
+    await document.exitFullscreen();
+  }
+};
+
+document.addEventListener("fullscreenchange", () => {
+  fsBtn.textContent = document.fullscreenElement
+    ? "Exit Fullscreen"
+    : "Reference Fullscreen";
+});
+
+/* === Resize Reference Panel === */
+const refSlider = document.getElementById("refSizeSlider");
+refSlider.addEventListener("input", () => {
+  refPanel.style.height = refSlider.value + "px";
+});
+// === Metronome ===
+let metronomeInterval = null;
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+let beatCount = 0;
+let beatsPerMeasure = 4; // Make it dynamic
+const timeSignatureSelect = document.getElementById("timeSignature");
+
+// Set initial beats per measure from selector
+beatsPerMeasure = parseInt(timeSignatureSelect.value);
+
+// Update beatsPerMeasure when dropdown changes
+timeSignatureSelect.addEventListener("change", () => {
+  beatsPerMeasure = parseInt(timeSignatureSelect.value);
+});
+
+const metronomeLight = document.getElementById("metronomeLight");
+
+function playTick() {
+  const isFirstBeat = beatCount % beatsPerMeasure === 0;
+
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(isFirstBeat ? 1500 : 1000, audioCtx.currentTime);
+
+  gain.gain.setValueAtTime(0, audioCtx.currentTime);
+  gain.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  osc.start(audioCtx.currentTime);
+  osc.stop(audioCtx.currentTime + 0.15);
+
+  // Light flash
+  metronomeLight.classList.remove("on", "first");
+  void metronomeLight.offsetWidth; // Force reflow to restart animation
+  metronomeLight.classList.add(isFirstBeat ? "first" : "on");
+
+  setTimeout(() => {
+    metronomeLight.classList.remove("on", "first");
+  }, 100);
+
+  beatCount++;
+}
+function startMetronome(bpm) {
+  const interval = 60000 / bpm; // interval between beats in ms
+  playTick(); // play first beat immediately
+  metronomeInterval = setInterval(playTick, interval);
+}
+
+
+function stopMetronome() {
+  if (metronomeInterval) {
+    clearInterval(metronomeInterval);
+    metronomeInterval = null;
+  }
+  beatCount = 0; // reset to start counting from beat 1 next time
+}
+
+
+
+const bpmInput = document.getElementById("bpmInput");
+const toggleBtn = document.getElementById("metronomeToggle");
+
+toggleBtn.addEventListener("click", () => {
+  const bpm = parseInt(bpmInput.value);
+  if (metronomeInterval) {
+    stopMetronome();
+    toggleBtn.textContent = "Start";
+  } else if (!isNaN(bpm) && bpm > 0) {
+    startMetronome(bpm);
+    toggleBtn.textContent = "Stop";
+  }
+});
+
+let cmuDict = {};
+
+fetch("cmudict.json")
+  .then(res => res.json())
+  .then(data => {
+    cmuDict = data;
+    console.log("CMU dict loaded:", Object.keys(cmuDict).length, "entries");
+  })
+  .catch(err => {
+    console.error("Failed to load CMU dict", err);
+  });
+
+function cleanWord(word) {
+  return word
+    .toLowerCase()
+    .replace(/[^a-z']/g, '')   // keep letters and apostrophes
+    .replace(/^'+|'+$/g, '');  // remove leading/trailing apostrophes
+}
+
+function getPhonemes(word) {
+  const key = cleanWord(word).toUpperCase();
+
+  const entry = cmuDict[key];
+  if (!entry) return null;
+
+  // Some entries are arrays (multiple pronunciations)
+  if (Array.isArray(entry)) {
+    return entry[0].split(" ");
+  }
+
+  return entry.split(" ");
+}
+
+
+
+
+function getStressPattern(phonemes) {
+  return phonemes
+    .map(p => p.match(/\d/) ? p.match(/\d/)[0] : null)
+    .filter(Boolean)
+    .map(Number);
+}
+
+function analyzeRhythm(text) {
+  const words = text.split(/\s+/).filter(Boolean);
+  const stresses = [];
+
+  for (const word of words) {
+    const phonemes = getPhonemes(word);
+    if (!phonemes) continue;
+
+    const stress = getStressPattern(phonemes);
+    stresses.push(...stress);
+  }
+
+  return stresses;
+}
+const stopWords = new Set([
+  "the","of","and","to","a","in","on","for","with","about",
+  "is","it","that","this","one",
+  "be","am","are","was","were","been","being","going"
+]);
+
+
+
+function scoreRhythm(stresses, text) {
+  const words = text.split(/\s+/).filter(Boolean);
+
+
+  // 1️⃣ Too short to judge
+  if (words.length < 3 || stresses.length < 4) {
+    return "off";
+  }
+
+  // 2️⃣ Semantic padding check (MUST BE HERE)
+  const contentCount = words.filter(
+    w => !stopWords.has(w.toLowerCase())
+  ).length;
+
+  const fillerRatio = 1 - contentCount / words.length;
+console.log({
+  text,
+  words: words.length,
+  contentCount,
+  fillerRatio: fillerRatio.toFixed(2)
+});
+  if (
+    words.length >= 7 &&
+    fillerRatio > PAD_THRESHOLD
+
+  ) {
+    return "red";
+  }
+
+ // 3️⃣ Rhythm analysis (only if not padded)
+const strongPositions = stresses
+  .map((s, i) => (s > 0 ? i : null))
+  .filter(i => i !== null);
+
+if (strongPositions.length < 3) return "yellow";
+
+// Count stressed WORDS, not syllables
+const stressedWordCount = new Set(
+  strongPositions.map(i => Math.floor(i / 2))
+).size;
+
+const stressDensity = stressedWordCount / words.length;
+
+// Gap analysis
+const gaps = [];
+for (let i = 1; i < strongPositions.length; i++) {
+  gaps.push(strongPositions[i] - strongPositions[i - 1]);
+}
+
+if (!gaps.length) return "green";
+
+
+const avgGap = gaps.reduce((a, b) => a + b, 0) / gaps.length;
+const variance =
+  gaps.reduce((sum, g) => sum + Math.abs(g - avgGap), 0) / gaps.length;
+
+
+
+  // 🟢 Natural flow
+// 🟢 Natural lyric flow (density + spacing)
+if (
+  stressDensity >= DENSITY_THRESHOLD &&
+  avgGap >= 1.8 &&
+  avgGap <= MAX_GAP &&
+  variance <= VARIANCE_THRESHOLD
+) {
+  return "green";
+}
+
+
+// If it's not red, it's usable
+return "green";
+}
+
+
+
+
+
+
+
+
+
+
+
+function updateRhythmLight(color) {
+  const el = document.getElementById("rhythmLight");
+
+  const colorMap = {
+    red: "#f44",
+    green: "#3fa",
+    off: "#444"  // default gray/off color
+  };
+
+  const c = colorMap[color] || "#444";
+
+  el.style.backgroundColor = c;
+  el.style.boxShadow = `0 0 8px ${c}`;
+}
+
+
+document.addEventListener("mouseup", () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) {
+    updateRhythmLight("off"); // turn off when nothing is selected
+    return;
+  }
+
+  const selectedText = sel.toString();
+  const stressPattern = analyzeRhythm(selectedText);
+ const rhythmScore = scoreRhythm(stressPattern, selectedText);
+
+
+  updateRhythmLight(rhythmScore);
+});
+
+
+</script>
+</body>
+</html>
