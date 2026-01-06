@@ -767,12 +767,33 @@ function updateRhythmLight(color) {
 }
 
 
-document.addEventListener("mouseup", () => {
+function handleSelection() {
   const sel = window.getSelection();
   if (!sel || sel.isCollapsed) {
-    updateRhythmLight("off"); // turn off when nothing is selected
+    updateRhythmLight("off");
     return;
   }
+
+  const selectedText = sel.toString().replace(/\n+/g, " ").trim();
+  const stressPattern = analyzeRhythm(selectedText);
+  const rhythmScore = scoreRhythm(stressPattern, selectedText);
+
+  updateRhythmLight(rhythmScore);
+}
+
+// Desktop + Android/iOS
+document.addEventListener("mouseup", handleSelection);
+document.addEventListener("touchend", handleSelection);
+
+// Extra reliability on mobile selection handles
+document.addEventListener("selectionchange", () => {
+  // Only evaluate when selection is inside the editor
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const editorEl = document.getElementById("editor");
+  if (!editorEl.contains(sel.anchorNode)) return;
+  handleSelection();
+});
 
   const selectedText = sel.toString();
   const stressPattern = analyzeRhythm(selectedText);
@@ -786,6 +807,7 @@ document.addEventListener("mouseup", () => {
 </script>
 </body>
 </html>
+
 
 
 
